@@ -189,10 +189,15 @@
           const event = new CustomEvent("leftmove", { detail: leftPaddle.y });
           dispatchEvent(event);
         };
+
         const handleFilter2Change = (val) => {
-          rightPaddle.y = (val * canvas.height) / 127;
+          rightPaddle.y = val;
         };
 
+        addEventListener("rightMove", (e) => {
+          console.log(e.detail);
+          handleFilter2Change(e.detail);
+        });
         const handleMidi1Message = (msg) => {
           if (msg.data.toString() === "248") {
             // useless clock message ignore
@@ -323,7 +328,6 @@
     </script>
     <div id="app">
       <h1>🎈 Welcome to PartyKit!</h1>
-      <p>yeah bro</p>
     </div>
     <script type="module" src="/dist/client.js"></script>
   </body>
