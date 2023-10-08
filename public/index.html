@@ -1,28 +1,328 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, shrink-to-fit=no"
-    />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>PartyKit: Everything's better with friends!</title>
-    <!-- Favicon -->
-    <link rel="icon" href="/favicon.ico" sizes="any" />
-    <!-- Primary Meta Tags -->
-    <meta name="title" content="PartyKit" />
-    <meta name="description" content="Everything's better with friends!" />
-    <meta name="author" content="PartyKit" />
-    <!-- Theme Colour -->
-    <meta name="theme-color" content="#ffffff" />
+    <title>Basic Pong HTML Game</title>
+    <meta charset="UTF-8" />
+    <style>
+      @font-face {
+        font-family: "PumpDemiBold";
+        src: url("./PumpOpti-DemiBold.otf");
+      }
 
-    <link rel="stylesheet" href="/normalize.css" />
-    <link rel="stylesheet" href="/dist/client.css" />
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        background: black;
+        align-items: center;
+        justify-content: center;
+        display: flex;
+        flex-direction: column;
+      }
+
+      h1 {
+        font-family: PumpDemiBold, sans;
+        color: white;
+      }
+
+      button {
+        background-color: black;
+        border: 5px solid white;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+        font-family: monospace;
+        text-transform: uppercase;
+      }
+
+      #menu {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        width: 750px;
+        margin-top: 25px;
+        margin-bottom: 30px;
+      }
+    </style>
   </head>
   <body>
+    <h1>2 Player Synth Pong Battle</h1>
+    <canvas width="750" height="585" id="game"></canvas>
+    <div id="menu">
+      <button id="connectMidiOutput">Connect from computer to KORG</button>
+      <button id="connectMidiInput">Connect from KORG to computer</button>
+      <button id="playNote">Test Connection</button>
+    </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        let midiOutput1 = null;
+        let midiOutput2 = null;
+        let midiInput1 = null;
+        let midiInput2 = null;
+
+        const connectToMidiOutput = async () => {
+          try {
+            const access = await navigator.requestMIDIAccess();
+            const outputs = Array.from(access.outputs.values());
+            console.log(outputs);
+            const desiredOutputs = outputs.filter((output) => output.name === "monologue SOUND");
+            if (desiredOutputs) {
+              midiOutput1 = desiredOutputs[0];
+              midiOutput2 = desiredOutputs[1];
+            } else {
+              console.error("MIDI output device not found");
+            }
+          } catch (error) {
+            console.error("MIDI access request failed", error);
+          }
+        };
+
+        const connectToMidiInput = async () => {
+          try {
+            const access = await navigator.requestMIDIAccess();
+            const inputs = Array.from(access.inputs.values());
+            const desiredInputs = inputs.filter((input) => input.name === "monologue KBD/KNOB");
+            if (desiredInputs) {
+              midiInput1 = desiredInputs[0];
+              midiInput2 = desiredInputs[1];
+              midiInput1.onmidimessage = (msg) => handleMidi1Message(msg);
+              midiInput2.onmidimessage = (msg) => handleMidi2Message(msg);
+            } else {
+              console.error("MIDI input device not found");
+            }
+          } catch (error) {
+            console.error("MIDI access request failed", error);
+          }
+        };
+
+        const playMidi1Note = (noteNumber) => {
+          if (!midiOutput1 && midiInput2) {
+            console.log("No output device selected");
+            return;
+          } else {
+            // Send MIDI note-on message for C4 (middle C) at maximum velocity
+            const noteOnMessage = [0x90, 60, 127];
+            midiOutput1.send(noteOnMessage);
+            midiOutput2.send(noteOnMessage);
+
+            // Send MIDI note-off message for C4 after 0.5 seconds
+            setTimeout(() => {
+              const noteOffMessage = [0x80, 60, 0];
+              midiOutput1.send(noteOffMessage);
+              midiOutput2.send(noteOffMessage);
+            }, 500);
+          }
+        };
+        const playMidi2Note = (noteNumber) => {
+          if (!midiOutput1 && midiInput2) {
+            console.log("No output device selected");
+            return;
+          } else {
+            // Send MIDI note-on message for C4 (middle C) at maximum velocity
+            const noteOnMessage = [0x90, 60, 127];
+            midiOutput2.send(noteOnMessage);
+
+            // Send MIDI note-off message for C4 after 0.5 seconds
+            setTimeout(() => {
+              const noteOffMessage = [0x80, 60, 0];
+              midiOutput2.send(noteOffMessage);
+            }, 500);
+          }
+        };
+
+        document.getElementById("connectMidiOutput").addEventListener("click", connectToMidiOutput);
+        document.getElementById("connectMidiInput").addEventListener("click", connectToMidiInput);
+        document.getElementById("playNote").addEventListener("click", () => {
+          playMidi1Note(60);
+          playMidi2Note(60);
+        });
+
+        const canvas = document.getElementById("game");
+        const context = canvas.getContext("2d");
+        const grid = 15;
+        const paddleHeight = grid * 5; // 80
+        const maxPaddleY = canvas.height - grid - paddleHeight;
+
+        var paddleSpeed = 6;
+        var ballSpeed = 5;
+
+        const leftPaddle = {
+          // start in the middle of the game on the left side
+          x: grid * 2,
+          y: canvas.height / 2 - paddleHeight / 2,
+          width: grid,
+          height: paddleHeight,
+
+          // paddle velocity
+          dy: 0,
+        };
+        const rightPaddle = {
+          // start in the middle of the game on the right side
+          x: canvas.width - grid * 3,
+          y: canvas.height / 2 - paddleHeight / 2,
+          width: grid,
+          height: paddleHeight,
+
+          // paddle velocity
+          dy: 0,
+        };
+        const ball = {
+          // start in the middle of the game
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+          width: grid,
+          height: grid,
+
+          // keep track of when need to reset the ball position
+          resetting: false,
+
+          // ball velocity (start going to the top-right corner)
+          dx: ballSpeed,
+          dy: -ballSpeed,
+        };
+
+        const handleFilter1Change = (val) => {
+          leftPaddle.y = (val * canvas.height) / 127;
+        };
+        const handleFilter2Change = (val) => {
+          rightPaddle.y = (val * canvas.height) / 127;
+        };
+
+        const handleMidi1Message = (msg) => {
+          if (msg.data.toString() === "248") {
+            // useless clock message ignore
+            return;
+          }
+          const param = parseInt(msg.data[1].toString());
+          const value = parseInt(msg.data[2].toString());
+          switch (param) {
+            case 43:
+              handleFilter1Change(value);
+              break;
+            default:
+              console.log();
+              break;
+          }
+          console.log(msg.data.toString());
+        };
+
+        const handleMidi2Message = (msg) => {
+          if (msg.data.toString() === "248") {
+            // useless clock message ignore
+            return;
+          }
+          const param = parseInt(msg.data[1].toString());
+          const value = parseInt(msg.data[2].toString());
+          switch (param) {
+            case 43:
+              handleFilter2Change(value);
+              break;
+            default:
+              console.log();
+              break;
+          }
+          console.log(msg.data.toString());
+        };
+
+        // check for collision between two objects using axis-aligned bounding box (AABB)
+        // @see https://developer.mozilla.org/en-US/docs/Games/Techniques/2D_collision_detection
+        function collides(obj1, obj2) {
+          return (
+            obj1.x < obj2.x + obj2.width &&
+            obj1.x + obj1.width > obj2.x &&
+            obj1.y < obj2.y + obj2.height &&
+            obj1.y + obj1.height > obj2.y
+          );
+        }
+
+        // game loop
+        function loop() {
+          requestAnimationFrame(loop);
+          context.clearRect(0, 0, canvas.width, canvas.height);
+
+          // prevent paddles from going through walls
+          if (leftPaddle.y < grid) {
+            leftPaddle.y = grid;
+          } else if (leftPaddle.y > maxPaddleY) {
+            leftPaddle.y = maxPaddleY;
+          }
+
+          if (rightPaddle.y < grid) {
+            rightPaddle.y = grid;
+          } else if (rightPaddle.y > maxPaddleY) {
+            rightPaddle.y = maxPaddleY;
+          }
+
+          // draw paddles
+          context.fillStyle = "white";
+          context.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
+          context.fillRect(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height);
+
+          // move ball by its velocity
+          ball.x += ball.dx;
+          ball.y += ball.dy;
+
+          // prevent ball from going through walls by changing its velocity
+          if (ball.y < grid) {
+            ball.y = grid;
+            ball.dy *= -1;
+          } else if (ball.y + grid > canvas.height - grid) {
+            ball.y = canvas.height - grid * 2;
+            ball.dy *= -1;
+          }
+
+          // reset ball if it goes past paddle (but only if we haven't already done so)
+          if ((ball.x < 0 || ball.x > canvas.width) && !ball.resetting) {
+            ball.resetting = true;
+
+            // give some time for the player to recover before launching the ball again
+            setTimeout(() => {
+              ball.resetting = false;
+              ball.x = canvas.width / 2;
+              ball.y = canvas.height / 2;
+            }, 400);
+            // this should probaly stay in time with the midi
+          }
+
+          // check to see if ball collides with paddle. if they do change x velocity
+          if (collides(ball, leftPaddle)) {
+            ball.dx *= -1;
+            playMidi1Note();
+            // move ball next to the paddle otherwise the collision will happen again
+            // in the next frame
+            ball.x = leftPaddle.x + leftPaddle.width;
+          } else if (collides(ball, rightPaddle)) {
+            ball.dx *= -1;
+            playMidi2Note();
+            // move ball next to the paddle otherwise the collision will happen again
+            // in the next frame
+            ball.x = rightPaddle.x - ball.width;
+          }
+
+          // draw ball
+          context.fillRect(ball.x, ball.y, ball.width, ball.height);
+
+          // draw walls
+          context.fillStyle = "lightgrey";
+          context.fillRect(0, 0, canvas.width, grid);
+          context.fillRect(0, canvas.height - grid, canvas.width, canvas.height);
+
+          // draw dotted line down the middle
+          for (let i = grid; i < canvas.height - grid; i += grid * 2) {
+            context.fillRect(canvas.width / 2 - grid / 2, i, grid, grid);
+          }
+        }
+
+        // start the game
+        requestAnimationFrame(loop);
+      });
+    </script>
     <div id="app">
       <h1>🎈 Welcome to PartyKit!</h1>
+      <p>yeah bro</p>
     </div>
     <script type="module" src="/dist/client.js"></script>
   </body>
