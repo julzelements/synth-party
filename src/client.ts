@@ -1,3 +1,4 @@
+import type { Message } from "partysocket/ws";
 import "./styles.css";
 
 import PartySocket from "partysocket";
@@ -22,6 +23,20 @@ const conn = new PartySocket({
   room: "my-new-room",
 });
 
+addEventListener("leftmove", (event) => {
+  // ts-ignore
+  console.log(event.detail);
+  const leftMove: Message = event.detail;
+  conn.send(leftMove);
+});
+
+addEventListener("rightmove", (event) => {
+  // ts-ignore
+  console.log(event.detail);
+  const rightMove: Message = event.detail;
+  conn.send(rightMove);
+});
+
 // You can even start sending messages before the connection is open!
 conn.addEventListener("message", (event) => {
   add(`Received -> ${event.data}`);
@@ -31,10 +46,10 @@ conn.addEventListener("message", (event) => {
 // And send a ping every 2 seconds right after
 conn.addEventListener("open", () => {
   add("Connected!");
-  add("Sending a ping every 2 seconds...");
-  // TODO: make this more interesting / nice
-  clearInterval(pingInterval);
-  pingInterval = setInterval(() => {
-    conn.send("ping");
-  }, 1000);
+  // add("Sending a ping every 2 seconds...");
+  // // TODO: make this more interesting / nice
+  // clearInterval(pingInterval);
+  // pingInterval = setInterval(() => {
+  //   conn.send("ping");
+  // }, 1000);
 });

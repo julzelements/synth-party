@@ -186,6 +186,8 @@
 
         const handleFilter1Change = (val) => {
           leftPaddle.y = (val * canvas.height) / 127;
+          const event = new CustomEvent("leftmove", { detail: leftPaddle.y });
+          dispatchEvent(event);
         };
         const handleFilter2Change = (val) => {
           rightPaddle.y = (val * canvas.height) / 127;
@@ -203,10 +205,9 @@
               handleFilter1Change(value);
               break;
             default:
-              console.log();
+              // console.log(msg.data.toString());
               break;
           }
-          console.log(msg.data.toString());
         };
 
         const handleMidi2Message = (msg) => {
