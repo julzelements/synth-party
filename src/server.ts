@@ -7,6 +7,16 @@ export default class Server implements Party.Server {
 
   constructor(readonly party: Party.Party) {}
 
+  onClose(connection: Party.Connection<unknown>): void | Promise<void> {
+    if (connection.id === this.player1) {
+      this.player1 = "";
+    }
+    if (connection.id === this.player2) {
+      this.player2 = "";
+    }
+    console.log("closed");
+  }
+
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
     // A websocket just connected!
     console.log(
@@ -15,25 +25,26 @@ export default class Server implements Party.Server {
   room: ${this.party.id}
   url: ${new URL(ctx.request.url).pathname}`
     );
-
-    // console.log(JSON.stringify(Array.from(this.party.getConnections())));
-    const roomSize = Array.from(this.party.getConnections()).length;
-    if (roomSize === 1) {
+    // player is already in the game
+    if (this.player1 === conn.id || this.player2 === conn.id) {
+      return;
+    } else if (!this.player1) {
       this.player1 = conn.id;
       conn.send(`${conn.id}: welcome player 1!`);
-    }
-    if (roomSize === 2) {
+      return;
+    } else if (!this.player2) {
       this.player2 = conn.id;
       conn.send(`${conn.id}: welcome player 2!`);
-    }
-    if (roomSize > 2) {
+      return;
+    } else {
       conn.send("sorry, game is full");
     }
+    console.log({ player1: this.player1, player2: this.player2 });
   }
 
   onMessage(message: string, sender: Party.Connection) {
     // let's log the message
-    console.log(`connection ${sender.id} sent message: ${message}`);
+    // console.log(`connection ${sender.id} sent message: ${message}`);
 
     if (message.includes("outOfBounds") && this.resetting === false) {
       this.resetting = true;
