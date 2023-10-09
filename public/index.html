@@ -173,12 +173,16 @@
         };
 
         addEventListener("opponentMove", (e) => {
-          console.log(JSON.parse(e.detail).pl);
-          opponentPaddle.y = e.detail;
+          console.log(e);
+          console.log("😈");
+          const opponentMove = JSON.parse(e.detail.data).opponentMove;
+          console.log(opponentMove);
+          opponentPaddle.y = opponentMove;
         });
 
         addEventListener("newPlayer", (e) => {
           playerPaddle = e.detail === 1 ? leftPaddle : rightPaddle;
+          opponentPaddle = e.detail === 2 ? leftPaddle : rightPaddle;
           playerSide = e.detail === 1 ? "left" : "right";
           player = e.detail;
           document.getElementById("welcome").textContent = `Welcome Player ${event.detail}`;

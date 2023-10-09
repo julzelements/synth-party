@@ -17,14 +17,13 @@ const conn = new PartySocket({
 
 addEventListener(`playerMove`, (event) => {
   // ts-ignore
-  console.log(event.detail);
+  console.log("💊");
   const playerMove: Message = event.detail;
   conn.send(JSON.stringify({ playerMove }));
 });
 
 // You can even start sending messages before the connection is open!
 conn.addEventListener("message", (event) => {
-  console.log(event.data);
   if (event.data.includes("player 1")) {
     console.log("🍄");
     dispatchEvent(new CustomEvent("newPlayer", { detail: 1 }));
@@ -34,10 +33,9 @@ conn.addEventListener("message", (event) => {
     dispatchEvent(new CustomEvent("newPlayer", { detail: 2 }));
   }
   if (event.data.includes("opponentMove")) {
-    console.log("🍄");
+    console.log("🥷🏻");
     dispatchEvent(new CustomEvent("opponentMove", { detail: event }));
   }
-  console.log(event);
 });
 
 // Let's listen for when the connection opens
