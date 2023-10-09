@@ -3,6 +3,8 @@ import type * as Party from "partykit/server";
 export default class Server implements Party.Server {
   player1 = "";
   player2 = "";
+  resetting = false;
+
   constructor(readonly party: Party.Party) {}
 
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
@@ -33,9 +35,11 @@ export default class Server implements Party.Server {
     // let's log the message
     console.log(`connection ${sender.id} sent message: ${message}`);
 
-    if (message.includes("outOfBounds")) {
+    if (message.includes("outOfBounds") && this.resetting === false) {
+      this.resetting = true;
       setTimeout(() => {
         this.party.broadcast("resetBall");
+        this.resetting = false;
       }, 400);
     }
 
