@@ -22,6 +22,11 @@ addEventListener(`playerMove`, (event) => {
   conn.send(JSON.stringify({ playerMove }));
 });
 
+addEventListener("outOfBounds", (event) => {
+  console.log("💥");
+  conn.send("outOfBounds");
+});
+
 // You can even start sending messages before the connection is open!
 conn.addEventListener("message", (event) => {
   if (event.data.includes("player 1")) {
@@ -35,6 +40,9 @@ conn.addEventListener("message", (event) => {
   if (event.data.includes("opponentMove")) {
     console.log("🥷🏻");
     dispatchEvent(new CustomEvent("opponentMove", { detail: event }));
+  }
+  if (event.data.includes("resetBall")) {
+    dispatchEvent(new Event("resetBall"));
   }
 });
 

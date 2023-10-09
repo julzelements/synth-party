@@ -216,6 +216,13 @@
           );
         }
 
+        addEventListener("resetBall", () => {
+          console.log("🏀");
+          ball.resetting = false;
+          ball.x = canvas.width / 2;
+          ball.y = canvas.height / 2;
+        });
+
         // game loop
         function loop() {
           requestAnimationFrame(loop);
@@ -254,27 +261,32 @@
 
           // reset ball if it goes past paddle (but only if we haven't already done so)
           if ((ball.x < 0 || ball.x > canvas.width) && !ball.resetting) {
+            dispatchEvent(new Event("outOfBounds"));
             ball.resetting = true;
 
             // give some time for the player to recover before launching the ball again
-            setTimeout(() => {
-              ball.resetting = false;
-              ball.x = canvas.width / 2;
-              ball.y = canvas.height / 2;
-            }, 400);
+            // setTimeout(() => {
+            //   ball.resetting = false;
+            //   ball.x = canvas.width / 2;
+            //   ball.y = canvas.height / 2;
+            // }, 400);
             // this should probaly stay in time with the midi
           }
 
           // check to see if ball collides with paddle. if they do change x velocity
           if (collides(ball, leftPaddle)) {
             ball.dx *= -1;
-            playMidiNote();
+            if (playerSide === "left") {
+              playMidiNote();
+            }
             // move ball next to the paddle otherwise the collision will happen again
             // in the next frame
             ball.x = leftPaddle.x + leftPaddle.width;
           } else if (collides(ball, rightPaddle)) {
             ball.dx *= -1;
-            playMidiNote();
+            if (playerSide === "right") {
+              playMidiNote();
+            }
             // move ball next to the paddle otherwise the collision will happen again
             // in the next frame
             ball.x = rightPaddle.x - ball.width;

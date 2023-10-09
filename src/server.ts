@@ -33,6 +33,12 @@ export default class Server implements Party.Server {
     // let's log the message
     console.log(`connection ${sender.id} sent message: ${message}`);
 
+    if (message.includes("outOfBounds")) {
+      setTimeout(() => {
+        this.party.broadcast("resetBall");
+      }, 400);
+    }
+
     if (message.includes("playerMove")) {
       const move = JSON.parse(message).playerMove;
       const opponentMove = move;
