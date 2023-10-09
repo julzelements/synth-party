@@ -31,8 +31,14 @@ addEventListener("rightmove", (event) => {
 
 // You can even start sending messages before the connection is open!
 conn.addEventListener("message", (event) => {
-  const rightMoveEvent = new CustomEvent("rightMove", { detail: event.data });
-  dispatchEvent(rightMoveEvent);
+  if (event.data === "welcome player 1!") {
+    console.log("🍄");
+    dispatchEvent(new CustomEvent("newPlayer", { detail: 1 }));
+  }
+  if (event.data === "welcome player 2!") {
+    console.log("🍄");
+    dispatchEvent(new CustomEvent("newPlayer", { detail: 2 }));
+  }
 });
 
 // Let's listen for when the connection opens

@@ -58,20 +58,19 @@
     </div>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
-        let midiOutput1 = null;
-        let midiOutput2 = null;
-        let midiInput1 = null;
-        let midiInput2 = null;
+        let midiOutput = null;
+        let midiInput = null;
+        let player = "";
+        let playerSide = "left";
 
         const connectToMidiOutput = async () => {
           try {
             const access = await navigator.requestMIDIAccess();
             const outputs = Array.from(access.outputs.values());
             console.log(outputs);
-            const desiredOutputs = outputs.filter((output) => output.name === "monologue SOUND");
-            if (desiredOutputs) {
-              midiOutput1 = desiredOutputs[0];
-              midiOutput2 = desiredOutputs[1];
+            const desiredOutput = outputs.find((output) => output.name === "monologue SOUND");
+            if (desiredOutput) {
+              midiOutput = desiredOutput;
             } else {
               console.error("MIDI output device not found");
             }
@@ -84,12 +83,10 @@
           try {
             const access = await navigator.requestMIDIAccess();
             const inputs = Array.from(access.inputs.values());
-            const desiredInputs = inputs.filter((input) => input.name === "monologue KBD/KNOB");
-            if (desiredInputs) {
-              midiInput1 = desiredInputs[0];
-              midiInput2 = desiredInputs[1];
-              midiInput1.onmidimessage = (msg) => handleMidi1Message(msg);
-              midiInput2.onmidimessage = (msg) => handleMidi2Message(msg);
+            const desiredInput = inputs.find((input) => input.name === "monologue KBD/KNOB");
+            if (desiredInput) {
+              midiInput = desiredInput;
+              midiInput.onmidimessage = (msg) => handleMidiMessage(msg);
             } else {
               console.error("MIDI input device not found");
             }
@@ -98,37 +95,19 @@
           }
         };
 
-        const playMidi1Note = (noteNumber) => {
-          if (!midiOutput1 && midiInput2) {
+        const playMidiNote = (noteNumber) => {
+          if (!midiOutput) {
             console.log("No output device selected");
             return;
           } else {
             // Send MIDI note-on message for C4 (middle C) at maximum velocity
-            const noteOnMessage = [0x90, 60, 127];
-            midiOutput1.send(noteOnMessage);
-            midiOutput2.send(noteOnMessage);
+            const noteOnMessage = [0x90, noteNumber, 127];
+            midiOutput.send(noteOnMessage);
 
             // Send MIDI note-off message for C4 after 0.5 seconds
             setTimeout(() => {
-              const noteOffMessage = [0x80, 60, 0];
-              midiOutput1.send(noteOffMessage);
-              midiOutput2.send(noteOffMessage);
-            }, 500);
-          }
-        };
-        const playMidi2Note = (noteNumber) => {
-          if (!midiOutput1 && midiInput2) {
-            console.log("No output device selected");
-            return;
-          } else {
-            // Send MIDI note-on message for C4 (middle C) at maximum velocity
-            const noteOnMessage = [0x90, 60, 127];
-            midiOutput2.send(noteOnMessage);
-
-            // Send MIDI note-off message for C4 after 0.5 seconds
-            setTimeout(() => {
-              const noteOffMessage = [0x80, 60, 0];
-              midiOutput2.send(noteOffMessage);
+              const noteOffMessage = [0x80, noteNumber, 0];
+              midiOutput.send(noteOffMessage);
             }, 500);
           }
         };
@@ -136,8 +115,7 @@
         document.getElementById("connectMidiOutput").addEventListener("click", connectToMidiOutput);
         document.getElementById("connectMidiInput").addEventListener("click", connectToMidiInput);
         document.getElementById("playNote").addEventListener("click", () => {
-          playMidi1Note(60);
-          playMidi2Note(60);
+          playMidiNote(60);
         });
 
         const canvas = document.getElementById("game");
@@ -184,21 +162,42 @@
           dy: -ballSpeed,
         };
 
-        const handleFilter1Change = (val) => {
-          leftPaddle.y = (val * canvas.height) / 127;
-          const event = new CustomEvent("leftmove", { detail: leftPaddle.y });
-          dispatchEvent(event);
-        };
-
-        const handleFilter2Change = (val) => {
-          rightPaddle.y = val;
+        const handleFilterChange = (val) => {
+          if (playerSide === "left") {
+            // move yer paddle
+            leftPaddle.y = (val * canvas.height) / 127;
+            // tell the client yer paddle is moved
+            const event = new CustomEvent("leftmove", { detail: leftPaddle.y });
+            dispatchEvent(event);
+          }
+          if (playerSide === "right") {
+            // move yer paddle
+            rightPaddle.y = (val * canvas.height) / 127;
+            // tell the client yer paddle is moved
+            const event = new CustomEvent("rightmove", { detail: rightPaddle.y });
+            dispatchEvent(event);
+          }
         };
 
         addEventListener("rightMove", (e) => {
           console.log(e.detail);
-          handleFilter2Change(e.detail);
+          handleFilterChange(e.detail);
         });
-        const handleMidi1Message = (msg) => {
+
+        addEventListener("leftMove", (e) => {
+          console.log(e.detail);
+          handleFilterChange(e.detail);
+        });
+
+        addEventListener("newPlayer", (e) => {
+          if (e.detail === 2) {
+            playerSide = "right";
+          }
+          player = e.detail;
+          document.getElementById("welcome").textContent = `Welcome Player ${event.detail}`;
+        });
+
+        const handleMidiMessage = (msg) => {
           if (msg.data.toString() === "248") {
             // useless clock message ignore
             return;
@@ -207,30 +206,12 @@
           const value = parseInt(msg.data[2].toString());
           switch (param) {
             case 43:
-              handleFilter1Change(value);
+              handleFilterChange(value);
               break;
             default:
               // console.log(msg.data.toString());
               break;
           }
-        };
-
-        const handleMidi2Message = (msg) => {
-          if (msg.data.toString() === "248") {
-            // useless clock message ignore
-            return;
-          }
-          const param = parseInt(msg.data[1].toString());
-          const value = parseInt(msg.data[2].toString());
-          switch (param) {
-            case 43:
-              handleFilter2Change(value);
-              break;
-            default:
-              console.log();
-              break;
-          }
-          console.log(msg.data.toString());
         };
 
         // check for collision between two objects using axis-aligned bounding box (AABB)
@@ -327,7 +308,7 @@
       });
     </script>
     <div id="app">
-      <h1>🎈 Welcome to PartyKit!</h1>
+      <h1 id="welcome"></h1>
     </div>
     <script type="module" src="/dist/client.js"></script>
   </body>

@@ -12,8 +12,17 @@ export default class Server implements Party.Server {
   url: ${new URL(ctx.request.url).pathname}`
     );
 
-    // let's send a message to the connection
-    conn.send("hello from server");
+    console.log(Array.from(this.party.getConnections()));
+    const roomSize = Array.from(this.party.getConnections()).length;
+    if (roomSize === 1) {
+      conn.send("welcome player 1!");
+    }
+    if (roomSize === 2) {
+      conn.send("welcome player 2!");
+    }
+    if (roomSize > 2) {
+      conn.send("sorry, game is full");
+    }
   }
 
   onMessage(message: string, sender: Party.Connection) {
