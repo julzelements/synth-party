@@ -33,7 +33,7 @@ conn.addEventListener("message", (event) => {
     console.log("🍄");
     dispatchEvent(new CustomEvent("newPlayer", { detail: 2 }));
   }
-  if (event.data.includes("playerMove")) {
+  if (event.data.includes("opponentMove")) {
     console.log("🍄");
     dispatchEvent(new CustomEvent("opponentMove", { detail: event }));
   }

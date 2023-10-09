@@ -173,7 +173,7 @@
         };
 
         addEventListener("opponentMove", (e) => {
-          console.log(e.detail);
+          console.log(JSON.parse(e.detail).pl);
           opponentPaddle.y = e.detail;
         });
 

@@ -32,6 +32,12 @@ export default class Server implements Party.Server {
   onMessage(message: string, sender: Party.Connection) {
     // let's log the message
     console.log(`connection ${sender.id} sent message: ${message}`);
+
+    if (message.includes("playerMove")) {
+      const move = JSON.parse(message).playerMove;
+      const opponentMove = move;
+      this.party.broadcast(JSON.stringify({ opponentMove }), [sender.id]);
+    }
     // as well as broadcast it to all the other connections in the room...
     this.party.broadcast(
       message,
