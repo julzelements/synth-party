@@ -15,36 +15,36 @@ const conn = new PartySocket({
   room: "my-new-room",
 });
 
-addEventListener("leftmove", (event) => {
+addEventListener(`playerMove`, (event) => {
   // ts-ignore
   console.log(event.detail);
-  const leftMove: Message = event.detail;
-  conn.send(leftMove);
-});
-
-addEventListener("rightmove", (event) => {
-  // ts-ignore
-  console.log(event.detail);
-  const rightMove: Message = event.detail;
-  conn.send(rightMove);
+  const playerMove: Message = event.detail;
+  conn.send(JSON.stringify({ playerMove }));
 });
 
 // You can even start sending messages before the connection is open!
 conn.addEventListener("message", (event) => {
-  if (event.data === "welcome player 1!") {
+  console.log(event.data);
+  if (event.data.includes("player 1")) {
     console.log("🍄");
     dispatchEvent(new CustomEvent("newPlayer", { detail: 1 }));
   }
-  if (event.data === "welcome player 2!") {
+  if (event.data.includes("player 2")) {
     console.log("🍄");
     dispatchEvent(new CustomEvent("newPlayer", { detail: 2 }));
   }
+  if (event.data.includes("playerMove")) {
+    console.log("🍄");
+    dispatchEvent(new CustomEvent("opponentMove", { detail: event }));
+  }
+  console.log(event);
 });
 
 // Let's listen for when the connection opens
 // And send a ping every 2 seconds right after
 conn.addEventListener("open", () => {
   console.log("connected");
+  console.log(conn.id);
   // add("Sending a ping every 2 seconds...");
   // // TODO: make this more interesting / nice
   // clearInterval(pingInterval);

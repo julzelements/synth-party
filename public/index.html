@@ -61,7 +61,10 @@
         let midiOutput = null;
         let midiInput = null;
         let player = "";
-        let playerSide = "left";
+        let playerPaddle = null;
+        let opponentPaddle = null;
+        let playerSide = "";
+        let playerId = "";
 
         const connectToMidiOutput = async () => {
           try {
@@ -163,36 +166,20 @@
         };
 
         const handleFilterChange = (val) => {
-          if (playerSide === "left") {
-            // move yer paddle
-            leftPaddle.y = (val * canvas.height) / 127;
-            // tell the client yer paddle is moved
-            const event = new CustomEvent("leftmove", { detail: leftPaddle.y });
-            dispatchEvent(event);
-          }
-          if (playerSide === "right") {
-            // move yer paddle
-            rightPaddle.y = (val * canvas.height) / 127;
-            // tell the client yer paddle is moved
-            const event = new CustomEvent("rightmove", { detail: rightPaddle.y });
-            dispatchEvent(event);
-          }
+          const newPaddleLocation = (val * canvas.height) / 127;
+          playerPaddle.y = newPaddleLocation;
+          const event = new CustomEvent(`playerMove`, { detail: newPaddleLocation });
+          dispatchEvent(event);
         };
 
-        addEventListener("rightMove", (e) => {
+        addEventListener("opponentMove", (e) => {
           console.log(e.detail);
-          handleFilterChange(e.detail);
-        });
-
-        addEventListener("leftMove", (e) => {
-          console.log(e.detail);
-          handleFilterChange(e.detail);
+          opponentPaddle.y = e.detail;
         });
 
         addEventListener("newPlayer", (e) => {
-          if (e.detail === 2) {
-            playerSide = "right";
-          }
+          playerPaddle = e.detail === 1 ? leftPaddle : rightPaddle;
+          playerSide = e.detail === 1 ? "left" : "right";
           player = e.detail;
           document.getElementById("welcome").textContent = `Welcome Player ${event.detail}`;
         });
@@ -277,13 +264,13 @@
           // check to see if ball collides with paddle. if they do change x velocity
           if (collides(ball, leftPaddle)) {
             ball.dx *= -1;
-            playMidi1Note();
+            playMidiNote();
             // move ball next to the paddle otherwise the collision will happen again
             // in the next frame
             ball.x = leftPaddle.x + leftPaddle.width;
           } else if (collides(ball, rightPaddle)) {
             ball.dx *= -1;
-            playMidi2Note();
+            playMidiNote();
             // move ball next to the paddle otherwise the collision will happen again
             // in the next frame
             ball.x = rightPaddle.x - ball.width;

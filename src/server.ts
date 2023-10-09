@@ -1,6 +1,8 @@
 import type * as Party from "partykit/server";
 
 export default class Server implements Party.Server {
+  player1 = "";
+  player2 = "";
   constructor(readonly party: Party.Party) {}
 
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
@@ -12,13 +14,15 @@ export default class Server implements Party.Server {
   url: ${new URL(ctx.request.url).pathname}`
     );
 
-    console.log(Array.from(this.party.getConnections()));
+    // console.log(JSON.stringify(Array.from(this.party.getConnections())));
     const roomSize = Array.from(this.party.getConnections()).length;
     if (roomSize === 1) {
-      conn.send("welcome player 1!");
+      this.player1 = conn.id;
+      conn.send(`${conn.id}: welcome player 1!`);
     }
     if (roomSize === 2) {
-      conn.send("welcome player 2!");
+      this.player2 = conn.id;
+      conn.send(`${conn.id}: welcome player 2!`);
     }
     if (roomSize > 2) {
       conn.send("sorry, game is full");
